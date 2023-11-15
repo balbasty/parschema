@@ -13,12 +13,12 @@ YAML (Yet Another Markup Language) is a superset of JSON that is
 becoming increasingly favored for writing things like configuration
 files or protocols.
 
-YAML schemas are YAML files that specify the layout of othe YAML files.
+YAML schemas are YAML files that specify the layout of other YAML files.
 
 Our design means that one may provide arguments in the form of a
 YAML config file _or_ as command-line arguments.
 
-## Yet a nother argument parser?
+## Yet another argument parser?
 
 Yes! There are so many argument parsers that the name I first wanted
 to use (_Yet Another Argument Parser_) is
@@ -27,7 +27,7 @@ to use (_Yet Another Argument Parser_) is
 - [`argparse`](https://docs.python.org/3/library/argparse.html): Everyone
   knows it. It becomes very quickly very verbose and does not allow
   yaml (or other config) files as alternative inputs.
-- [click](https://click.palletsprojects.com_: I like it for simple functions
+- [click](https://click.palletsprojects.com): I like it for simple functions
   but it also becomes very verbose very quickly.
 - [`ConfigArgParse`](https://pypi.org/project/ConfigArgParse/): I learned
   of it from `yaap`. Apparently not a very robust parser.
