@@ -21,35 +21,49 @@ def schema2cli(schema):
         a YAML object that follows the schema.
     """
 
-    def parser(args):
-
-        if '--help' in args or '-h' in args:
-            help_level = 0
-            if '--help' in args:
-                help_index = args.index('--help')
-            else:
-                help_index = args.index('-h')
-            if len(args) > help_index + 1:
-                help_level = args[help_index+1]
-                try:
-                    help_level = int(help_level)
-                except ValueError:
-                    help_level = 0
-            print(schema2help(schema).tostring(help_level))
+    def parser(args, cmd=''):
+        which_help, help_level = find_help(args)
+        if which_help == 'usage':
+            print(schema2help(schema).renderusage(help_level, cmd=cmd))
             return
-
-        try:
-            obj = args2yaml(args, schema)
-            obj = populate(obj, schema)
-            return obj
-        except Exception as e:
-            print(schema2help(schema).tostring())
-            raise e
+        elif which_help == 'help':
+            print(schema2help(schema).renderhelp(help_level, cmd=cmd))
+            return
+        else:
+            try:
+                obj = args2yaml(args, schema)
+                obj = populate(obj, schema)
+                return obj
+            except Exception as e:
+                print(schema2help(schema).tostring())
+                raise e
 
     return parser
 
 
 # --- implementation ---
+
+def find_help(args):
+    if '--help' in args or '-h' in args or '--usage' in args:
+        help_level = 0
+        if '--help' in args:
+            help_index = args.index('--help')
+        elif '--usage' in args:
+            help_index = args.index('--usage')
+        elif '-h' in args:
+            help_index = args.index('-h')
+        if len(args) > help_index + 1:
+            help_level = args[help_index+1]
+            try:
+                help_level = int(help_level)
+            except ValueError:
+                help_level = 0
+        if '--usage' in args:
+            return 'usage', help_level
+        else:
+            return 'help', help_level
+    return '', 0
+
 
 def args2yaml(args, schema):
     """
@@ -85,19 +99,19 @@ class ArgMapper:
         self.is_array = is_array
 
 
+def str2bool(x):
+    if x.lower()[0] in 'ty':
+        return True
+    elif x.lower()[0] in 'fn':
+        return False
+    else:
+        return bool(int(x))
+
+
 def schema2tagmap(schema):
     """
     Create a map from CLI tags to YAML hierarchy
     """
-
-    def str2bool(x):
-        if x.lower()[0] in 'ty':
-            return True
-        elif x.lower()[0] in 'fn':
-            return False
-        else:
-            return bool(int(x))
-
     typemap = {
         '': str,
         'string': str,

@@ -196,6 +196,8 @@ class MakeDict(Action):
 
 
 # register all builtin actions defined in this file
-for key, klass in locals().items():
-    if issubclass(klass, Action) and klass is not Action:
+for key, klass in list(locals().items()):
+    if (isinstance(klass, type)
+            and issubclass(klass, Action)
+            and klass is not Action):
         register_action(klass, key)

@@ -126,7 +126,9 @@ class PathExists(Check):
         raise self.Error(f'Path does not exist: {value}')
 
 
-# register all builtin actions defined in this file
-for key, klass in locals().items():
-    if issubclass(klass, Check) and klass is not Check:
+# register all builtin checks defined in this file
+for key, klass in list(locals().items()):
+    if (isinstance(klass, type)
+            and issubclass(klass, Check)
+            and klass is not Check):
         register_check(klass, key)

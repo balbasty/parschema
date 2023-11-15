@@ -1,5 +1,5 @@
 __all__ = [
-    'schema2help',
+    'schema2help', 'HELP',
 ]
 import textwrap
 
@@ -86,12 +86,18 @@ _NO_DEFAULT = object()
 DEFAULT_WIDTH = 80
 
 
-class COMMAND:
+class HELP:
+    """Base class for help formatters"""
+    pass
+
+
+class COMMAND(HELP):
     """
     Help for commands (or subcommands)
     """
 
-    def __init__(self, title, description='', has_version=False, level=0):
+    def __init__(self, title='', description='', key='',
+                 has_version=False, level=0):
         """
         Parameters
         ----------
@@ -105,9 +111,11 @@ class COMMAND:
         level : int
             The help level of this (sub)command.
         """
+        self.key = key
         self.title = title
         self.description = description
         self.options = GROUP()
+        self.commands = GROUP()
         self.has_version = has_version
         self.level = level
 
@@ -117,6 +125,10 @@ class COMMAND:
 
     def set_description(self, value=''):
         self.description = value
+        return self
+
+    def set_key(self, value=''):
+        self.key = value
         return self
 
     def set_has_version(self, value=True):
@@ -142,7 +154,8 @@ class COMMAND:
         return self
 
     def make_help_option(self):
-        desc = 'Display this help.'
+        desch = 'Display this help.'
+        descu = 'Display usage.'
         maxlevel = self.options.get_max_level()
         if maxlevel:
             if maxlevel > 3:
@@ -153,37 +166,115 @@ class COMMAND:
                 values = 'Values in {1, 2}'
             else:
                 values = 'Value 1 shows'
-            desc += f' {values} more advanced options.'
-        return GROUP([OPTION(
-            ['-h', '--help'],
-            SCALAR('boolean' if maxlevel == 0 else 'integer'),
-            description=desc,
-        )]).set_title('help').set_description('Display help')
+            values = f' {values} more advanced options.'
+            desch += values
+            descu += values
+        return GROUP([
+            OPTION(
+                ['-h', '--help'],
+                SCALAR('boolean' if maxlevel == 0 else 'integer'),
+                description=desch),
+            OPTION(
+                ['--usage'],
+                SCALAR('boolean' if maxlevel == 0 else 'integer'),
+                description=descu),
+        ]).set_title('help').set_description('Display help')
 
-    def make_help_version(self):
+    def make_version_option(self):
         return GROUP([OPTION(
             ['-V', '--version'],
             SCALAR('boolean'),
             description='Display the software version',
         )]).set_title('version').set_description('Display version')
 
-    def tostring(self, level=0, maxwidth=DEFAULT_WIDTH):
-        s = self.title + '\n'
+    def renderusage(self, level=0, maxwidth=DEFAULT_WIDTH, cmd=''):
+        path = ''
+        if cmd:
+            path += f'{cmd} '
+        if self.key:
+            path += f'{self.key} '
+
+        s = 'Usage: \n'
+        if self.commands:
+            cmdkeys = [c.key for c in get_all_commands(self.commands)]
+            s += f'    {path}[{"|".join(cmdkeys)}]\n'
+        elif self.options:
+            opts = []
+            for opt in get_all_options(self.options):
+                if opt.level <= self.level:
+                    tag, typ, _ = opt.tostring()
+                    tag.split(', ')[-1]
+                    shortopt = f'{tag} {typ.upper()}'
+                    if opt.default is not _NO_DEFAULT:
+                        shortopt = f'[{shortopt}]'
+                    opts += [shortopt]
+            opts = ' '.join(opts)
+            indent = 5 + len(path)
+            opts = textwrap.wrap(opts, maxwidth - indent,
+                                 initial_indent='',
+                                 subsequent_indent=' ' * indent)
+            s += f'     {path}' + '\n'.join(opts)
+        return s
+
+    def renderusageshort(self, maxwidth=DEFAULT_WIDTH, cmd=''):
+        path = ''
+        if cmd:
+            path += f'{cmd} '
+        if self.key:
+            path += f'{self.key} '
+
+        s = '\nUsage:'
+        if self.commands:
+            cmdkeys = [c.key for c in get_all_commands(self.commands)]
+            s += f'\n    {path}[{"|".join(cmdkeys)}]'
+        elif self.options:
+            opts = []
+            for opt in get_all_options(self.options):
+                if opt.level <= self.level:
+                    tag, typ, _ = opt.tostring()
+                    tag.split(', ')[0]
+                    shortopt = f'{tag} {typ.upper()}'
+                    if opt.default is not _NO_DEFAULT:
+                        shortopt = f'[{shortopt}]'
+                    opts += [shortopt]
+            opts = ' '.join(opts)
+            opts = textwrap.shorten(opts, maxwidth - len(path) - 5)
+            s += f'\n     {path}{opts}'
+        s += '\n'
+        return s
+
+    def renderhelp(self, level=0, maxwidth=DEFAULT_WIDTH, cmd=''):
+        # Call this function to render the help string
+        s = ''
+        if self.title:
+            s += self.title + '\n\n'
         if self.description:
-            description = textwrap.fill('\t' + self.description, maxwidth)
+            description = textwrap.fill(self.description, maxwidth,
+                                        initial_indent='    ')
             s += description + '\n'
+
+        s += self.renderusageshort(maxwidth, cmd)
 
         rows = [self.options, self.make_help_option()]
         if self.has_version:
             rows += [self.make_version_option()]
 
-        with get_colformat(rows, level, maxwidth):
+        with get_colformat(get_all_options(rows), level, maxwidth):
             for row in rows:
                 s += row.tostring(level, maxwidth)
+
+        if self.commands:
+            with get_colformat(get_all_commands(self.commands),
+                               level, maxwidth):
+                s += self.commands.tostring()
         return s
 
+    def tostring(self, level=0, maxwidth=DEFAULT_WIDTH):
+        # call this function to display as a subcommand in a list
+        return ['  ' + self.key, self.title]
 
-class GROUP(list):
+
+class GROUP(HELP, list):
     """
     Help for group of options
     """
@@ -215,12 +306,10 @@ class GROUP(list):
         """Compute the maximum help level across all (nested) options"""
         maxlevel = self.level
         for row in self:
-            if isinstance(row, OPTION):
-                maxlevel = max(maxlevel, row.level)
-            elif isinstance(row, GROUP):
+            if isinstance(row, GROUP):
                 maxlevel = max(maxlevel, row.get_max_level())
             else:
-                assert False, f"{type(row)}"
+                maxlevel = max(maxlevel, row.level)
         return maxlevel
 
     def tostring(self, level=0, maxwidth=DEFAULT_WIDTH):
@@ -228,10 +317,9 @@ class GROUP(list):
         #       to format the list of options
         s = ''
         if self.level <= level:
-            s += '\n'
             if self.description:
                 description = textwrap.fill(self.description, maxwidth)
-                s += description + ':\n'
+                s += '\n' + description + ':\n'
         rows = []
         for row in self:
             row = row.tostring(level, maxwidth)
@@ -249,11 +337,11 @@ class GROUP(list):
                     if isinstance(row, list) else row
                     for row in rows]
 
-        s += '\n'.join(rows)
+        s += ''.join(rows)
         return s
 
 
-class OPTION:
+class OPTION(HELP):
     """
     An individual option (i.e., a flag and zero, one or multiple values)
     """
@@ -325,19 +413,19 @@ class OPTION:
             tags = ''
         mn, mx = self.minmax
         type = self.type.tostring()
+        if mx is None or mx > 1:
+            type += '...'
         if mn == 0:
             type = f'[{type}]'
-        if mx is None or mx > 1:
-            type += ' ...'
-            if mx:
-                type += f' (< {mx})'
+        if mx and mx > 1:
+            type += f' (< {mx})'
         description = ' '.join(self.description.split())
         if self.default is not _NO_DEFAULT:
             description += f' (default: {self.default})'
         return [tags, type, description]
 
 
-class TYPE:
+class TYPE(HELP):
     """Base class for value types"""
     pass
 
@@ -437,6 +525,31 @@ def get_all_options(options):
     return alloptions
 
 
+def get_all_commands(commands):
+    """
+    Unpack direct subcommands from nested groups of commands.
+    This is useful to compute a column format that is compatible with
+    all the options that will be displayed.
+
+    Parameters
+    ----------
+    commands : GROUP or list[GROUP or COMMAND]
+        Nested groups of commands
+
+    Returns
+    -------
+    commands : list[COMMAND]
+        A flat list of commands
+    """
+    all = []
+    for command in commands:
+        if isinstance(command, COMMAND):
+            all.append(command)
+        elif isinstance(command, GROUP):
+            all.extend(get_all_commands(command))
+    return all
+
+
 def get_colformat(options, level, maxwidth):
     """
     Return a `ColumnFormat` context that is compatible with a
@@ -457,10 +570,9 @@ def get_colformat(options, level, maxwidth):
     context : ColumnFormat
         A `ColumnFormat` context
     """
-    alloptions = get_all_options(options)
-    alloptions = [opt.tostring(level) for opt in alloptions]
-    alloptions = [opt for opt in alloptions if opt]
-    sep, width = compute_colwidths(alloptions, maxwidth)
+    options = [opt.tostring(level) for opt in options]
+    options = [opt for opt in options if opt]
+    sep, width = compute_colwidths(options, maxwidth)
     return ColumnFormat(width, sep)
 
 
@@ -474,7 +586,7 @@ def compute_colwidths(options, maxwidth=DEFAULT_WIDTH, minwidth=40):
         width[-1] = maxwidth - (sum(width[:-1]) + len(width) - 1)
         width[-1] = max(minwidth, width[-1])
     sep = maxwidth - sum(width)
-    sep = max(1, sep // (len(width) - 1))
+    sep = min(4, max(1, sep // (len(width) - 1)))
     return sep, width
 
 
@@ -494,4 +606,5 @@ def catcol(columns, colwidth, sep=1):
         row = (' ' * sep).join(row)
         s += [row]
     s = '\n'.join(s)
+    s += '\n'
     return s
