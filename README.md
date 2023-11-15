@@ -27,14 +27,14 @@ to use (_Yet Another Argument Parser_) is
 - [`argparse`](https://docs.python.org/3/library/argparse.html): Everyone
   knows it. It becomes very quickly very verbose and does not allow
   yaml (or other config) files as alternative inputs.
-- [click](https://click.palletsprojects.com): I like it for simple functions
+- [`click`](https://click.palletsprojects.com): I like it for simple functions
   but it also becomes very verbose very quickly.
 - [`ConfigArgParse`](https://pypi.org/project/ConfigArgParse/): I learned
   of it from `yaap`. Apparently not a very robust parser.
 - [`yaap`](https://github.com/kaniblu/yaap): This guy had exactly the
   same idea, but three years ago! But the schema must be defined
   programmatically using Python classes. Which again become very verbose.
-- [hydra](https://github.com/facebookresearch/hydra): A Facebook package
+- [`hydra`](https://github.com/facebookresearch/hydra): A Facebook package
   that loads YAML config files and allow their value using a CLI.
   Our difference is that the command-line utility built by our framework
   follows conventions typically used in unix commands (and by other python
