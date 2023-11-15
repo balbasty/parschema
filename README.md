@@ -83,7 +83,7 @@ params = parser(['--train', '/tmp'])
 print(yaml.dump(params, sort_keys=False))
 ```
 prints
-```
+```yaml
 data:
   train:
   - /tmp
@@ -119,8 +119,8 @@ sys:
 
 A function that takes a dictionary of parameters can easily be transformed
 into a CLI parser using the decorator `parseman.command`:
-```
-@command(schema)
+```python
+@parseman.command(schema)
 def segment(params):
     # do something with `params`, which is a dictionary of parameters
     ....
