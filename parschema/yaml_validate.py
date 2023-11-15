@@ -5,8 +5,8 @@ from collections.abc import Mapping
 # dep
 import jsonschema
 # internal
-from parseman.actions import get_action
-from parseman.checks import get_check
+from .actions import get_action
+from .checks import get_check
 
 
 def populate(instance, schema):

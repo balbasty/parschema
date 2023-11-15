@@ -7,7 +7,7 @@ __all__ = [
     'Check',
 ]
 import os
-from parseman.exceptions import CheckError
+from .exceptions import CheckError
 
 # Dictionary holding all known actions
 # This allows downstream users to register their own actions

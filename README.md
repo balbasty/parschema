@@ -1,27 +1,52 @@
-# parseman
+# Parschema
 
-A parser for typed parameters (command line arguments, yaml files, json files, etc)
+An argument parser based on YAML schemas
 
 **Under very early development**
 
+## In a nutshell
 
 The specificity of this argument parser is that it relies entirely on
 **YAML schemas** (or more exactly, on JSON schemas written in YAML).
 
-This design means that one may provide arguments in the form of a
+YAML (Yet Another Markup Language) is a superset of JSON that is
+becoming increasingly favored for writing things like configuration
+files or protocols.
+
+YAML schemas are YAML files that specify the layout of othe YAML files.
+
+Our design means that one may provide arguments in the form of a
 YAML config file _or_ as command-line arguments.
 
-While there are similarities with
-[**hydra**](https://github.com/facebookresearch/hydra), our difference
-is that the command-line utility built by our framework follows
-conventions typically used in unix commands (and by python CLI parsers
-such as [**argparse**](https://docs.python.org/3/library/argparse.html) or
-[**click**](https://click.palletsprojects.com).
+## Yet a nother argument parser?
+
+Yes! There are so many argument parsers that the name I first wanted
+to use (_Yet Another Argument Parser_) is
+[already used](https://github.com/kaniblu/yaap)!
+
+- [`argparse`](https://docs.python.org/3/library/argparse.html): Everyone
+  knows it. It becomes very quickly very verbose and does not allow
+  yaml (or other config) files as alternative inputs.
+- [click](https://click.palletsprojects.com_: I like it for simple functions
+  but it also becomes very verbose very quickly.
+- [`ConfigArgParse`](https://pypi.org/project/ConfigArgParse/): I learned
+  of it from `yaap`. Apparently not a very robust parser.
+- [`yaap`](https://github.com/kaniblu/yaap): This guy had exactly the
+  same idea, but three years ago! But the schema must be defined
+  programmatically using Python classes. Which again become very verbose.
+- [hydra](https://github.com/facebookresearch/hydra): A Facebook package
+  that loads YAML config files and allow their value using a CLI.
+  Our difference is that the command-line utility built by our framework
+  follows conventions typically used in unix commands (and by other python
+  CLI parsers). In contrast, hydra using thinks like
+  `./my_script parent.child=2`.
+
+## How can I build a schema-based parser?
 
 To start with, we advise getting familiar with
 [**JSON schemas**](https://json-schema.org).
 
-We then provide an example CLI schema
+We also provide an example schema
 ([`examples/vesselseg_schema.yaml`](examples/vesselseg_schema.yaml))
 and corresponding parameter file
 ([`examples/vesselseg_params.yaml`](examples/vesselseg_params.yaml)).
@@ -29,12 +54,12 @@ and corresponding parameter file
 A CLI parser can be generated like this:
 ```python
 import yaml
-import parseman
+import parschema
 
 with open('vesselseg_schema.yaml') as f:
     schema = yaml.load(f)
 
-parser = parseman.schema2parser(schema)
+parser = parschema.schema2parser(schema)
 
 parser(['--help'])
 ```
@@ -76,13 +101,13 @@ Display help:
 -h, --help [int]     Display this help. Value 1 shows more advanced options.
 ```
 
-Now running
+Now if we properly parse a set of arguments:
 ```python
 params = parser(['--train', '/tmp'])
 
 print(yaml.dump(params, sort_keys=False))
 ```
-prints
+we get a nicely populated YAML object
 ```yaml
 data:
   train:
@@ -117,10 +142,12 @@ sys:
   gpu: false
 ```
 
+## Can I transform python functions into entrypoints like with `click`?
+
 A function that takes a dictionary of parameters can easily be transformed
-into a CLI parser using the decorator `parseman.command`:
+into a CLI parser using the decorator `parschema.command`:
 ```python
-@parseman.command(schema)
+@parschema.command(schema)
 def segment(params):
     # do something with `params`, which is a dictionary of parameters
     ....

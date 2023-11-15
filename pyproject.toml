@@ -1,6 +1,6 @@
 [project]
-name = 'parseman'
-description = 'A parser for typed parameters (command line arguments, yaml files, json files, etc)'
+name = 'parschema'
+description = 'An argument parser based on YAML schemas'
 keywords = ['parser', 'cli', 'yaml', 'json', 'schema']
 classifiers = [
     'License :: OSI Approved :: MIT License',

@@ -7,7 +7,7 @@ __all__ = [
     'Action',
 ]
 import os
-from parseman.exceptions import ActionError
+from .exceptions import ActionError
 
 
 # Dictionary holding all known actions
