@@ -27,19 +27,25 @@ to use (_Yet Another Argument Parser_) is
 - [`argparse`](https://docs.python.org/3/library/argparse.html): Everyone
   knows it. It becomes very quickly very verbose and does not allow
   yaml (or other config) files as alternative inputs.
+- [`jsonargparse`](https://jsonargparse.readthedocs.io): Built on `argparse`,
+  and used by pytorch-lightning. Can build parser from classes, functions, type hints, etc.
 - [`click`](https://click.palletsprojects.com): I like it for simple functions
   but it also becomes very verbose very quickly.
-- [`ConfigArgParse`](https://pypi.org/project/ConfigArgParse/): I learned
-  of it from `yaap`. Apparently not a very robust parser.
+- [`typer`](https://typer.tiangolo.com): Built on click, plus uses type hints
+  to automatically build options and arguments.
 - [`yaap`](https://github.com/kaniblu/yaap): This guy had exactly the
   same idea, but three years ago! But the schema must be defined
   programmatically using Python classes. Which again become very verbose.
+- [`ConfigArgParse`](https://pypi.org/project/ConfigArgParse/): I learned
+  of it from `yaap`. Apparently not a very robust parser.
 - [`hydra`](https://github.com/facebookresearch/hydra): A Facebook package
   that loads YAML config files and allow their value using a CLI.
   Our difference is that the command-line utility built by our framework
   follows conventions typically used in unix commands (and by other python
   CLI parsers). In contrast, hydra using thinks like
   `./my_script parent.child=2`.
+- [`plac`](https://plac.readthedocs.io): Another click-like parser that
+  uses function type hints.
 
 ## How can I build a schema-based parser?
 
